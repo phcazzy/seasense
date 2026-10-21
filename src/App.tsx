@@ -290,32 +290,47 @@ function App() {
    */
 
   const saveSystemSettings = async () => {
+  try {
+    const settings = {
+      device_id: "VAST-ESP32-001",
+      fan_mode: fanMode,
+      humidity_on_threshold: Number(humidityOnThreshold),
+      humidity_off_threshold: Number(humidityOffThreshold),
+      temperature_threshold: Number(temperatureThreshold),
+      updated_at: new Date().toISOString(),
+    };
+
     const { error } = await supabase
       .from("system_settings")
-      .update({
-        fan_mode: fanMode,
-        humidity_on_threshold:
-          humidityOnThreshold,
-        humidity_off_threshold:
-          humidityOffThreshold,
-        temperature_threshold:
-          temperatureThreshold,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("device_id", "VAST-ESP32-001");
+      .upsert(settings, {
+        onConflict: "device_id",
+      });
 
     if (error) {
       console.error(
         "Failed to save system settings:",
         error
       );
+
+      alert(`Failed to save settings:\n${error.message}`);
       return;
     }
 
     console.log(
-      "System settings saved to Supabase."
+      "System settings saved successfully:",
+      settings
     );
-  };
+
+    alert("Settings saved successfully!");
+  } catch (error) {
+    console.error(
+      "Unexpected error while saving settings:",
+      error
+    );
+
+    alert("Failed to save settings.");
+  }
+};
 
   /*
    * INITIAL DATA LOAD + REFRESH
@@ -737,7 +752,7 @@ if (newAlert) {
             <Menu size={22} />
           </button>
 
-          <div>
+          <div className="header-left">
             <h1>
               {getPageTitle(page)}
             </h1>
@@ -1122,7 +1137,7 @@ function AlertsPage({
               <BatteryMedium
                 size={19}
               />
-            }
+            } 
             title="Low Battery"
             condition="Battery ≤ 20%"
             description="Warns when the system battery becomes critically low."
